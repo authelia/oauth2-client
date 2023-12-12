@@ -29,49 +29,47 @@ type PushedAuthResponse struct {
 }
 
 // PushedAuth returns a pushed auth struct which contains a request uri and expires in information after making a HTTP
-// POST request to the configured Pushed Auth URL. In addition, it returns the string of the properly formatted AuthURL
-// for the PAR session.
-func (c *Config) PushedAuth(ctx context.Context, state string, opts ...AuthCodeOption) (string, *PushedAuthResponse, error) {
+// POST request to the configured Pushed Auth URL. In addition, it returns the *url.URL of the properly formatted AuthURL
+// for the PAR session provided the AuthURL Endpoint is configured.
+func (c *Config) PushedAuth(ctx context.Context, state string, opts ...AuthCodeOption) (authURL *url.URL, par *PushedAuthResponse, err error) {
 	if c.Endpoint.PushedAuthURL == "" {
-		return "", nil, errors.New("endpoint missing PushedAuthURL")
+		return nil, nil, errors.New("endpoint missing PushedAuthURL")
 	}
 
-	if c.Endpoint.AuthURL == "" {
-		return "", nil, errors.New("endpoint missing AuthURL")
-	}
+	var v url.Values
 
-	authURL, v, err := c.getPushedAuthCodeValues(state, opts...)
-	if err != nil {
-		return "", nil, err
+	if authURL, v, err = c.getPushedAuthCodeValues(state, opts...); err != nil {
+		return nil, nil, err
 	}
 
 	req, err := http.NewRequest("POST", c.Endpoint.PushedAuthURL, strings.NewReader(v.Encode()))
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
 	r, err := internal.ContextClient(ctx).Do(req)
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 
 	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
-		return "", nil, fmt.Errorf("oauth2: cannot push auth: %v", err)
+		return nil, nil, fmt.Errorf("oauth2: cannot push auth: %v", err)
 	}
 	if code := r.StatusCode; code < 200 || code > 299 {
-		return "", nil, &RetrieveError{
+		return nil, nil, &RetrieveError{
 			Response: r,
 			Body:     body,
 		}
 	}
 
-	par := &PushedAuthResponse{}
+	par = &PushedAuthResponse{}
 	err = json.Unmarshal(body, &par)
 	if err != nil {
-		return "", nil, fmt.Errorf("unmarshal %s", err)
+		return nil, nil, fmt.Errorf("unmarshal %s", err)
 	}
 
 	fv := url.Values{
@@ -81,29 +79,32 @@ func (c *Config) PushedAuth(ctx context.Context, state string, opts ...AuthCodeO
 
 	authURL.RawQuery = fv.Encode()
 
-	return authURL.String(), par, nil
+	return authURL, par, nil
 }
 
-func (c *Config) getPushedAuthCodeValues(state string, opts ...AuthCodeOption) (*url.URL, url.Values, error) {
-	authURL, err := url.ParseRequestURI(c.Endpoint.AuthURL)
-	if err != nil {
-		return nil, url.Values{}, fmt.Errorf("failed to parse AuthURL: %w", err)
-	}
+func (c *Config) getPushedAuthCodeValues(state string, opts ...AuthCodeOption) (authURL *url.URL, v url.Values, err error) {
+	if c.Endpoint.AuthURL != "" {
+		if authURL, err = url.ParseRequestURI(c.Endpoint.AuthURL); err != nil {
+			return nil, url.Values{}, fmt.Errorf("failed to parse AuthURL: %w", err)
+		}
 
-	v := authURL.Query()
+		v = authURL.Query()
 
-	xv := c.getAuthCodeValues(state, opts...)
-
-	for key, value := range xv {
-		v[key] = value
+		authURL.RawQuery = ""
+		authURL.RawFragment = ""
+	} else {
+		v = url.Values{}
 	}
 
 	if c.ClientSecret != "" {
 		v.Set("client_secret", c.ClientSecret)
 	}
 
-	authURL.RawQuery = ""
-	authURL.RawFragment = ""
+	xv := c.getAuthCodeValues(state, opts...)
+
+	for key, value := range xv {
+		v[key] = value
+	}
 
 	return authURL, v, nil
 }

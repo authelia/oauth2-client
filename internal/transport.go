@@ -26,8 +26,10 @@ func ContextClient(ctx context.Context) *http.Client {
 			return hc
 		}
 	}
+
 	if appengineClientHook != nil {
 		return appengineClientHook(ctx)
 	}
+
 	return http.DefaultClient
 }

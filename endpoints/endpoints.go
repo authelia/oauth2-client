@@ -68,8 +68,8 @@ var GitLab = oauth2.Endpoint{
 
 // Google is the endpoint for Google.
 var Google = oauth2.Endpoint{
-	AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-	TokenURL: "https://oauth2.googleapis.com/token",
+	AuthURL:       "https://accounts.google.com/o/oauth2/auth",
+	TokenURL:      "https://oauth2.googleapis.com/token",
 	DeviceAuthURL: "https://oauth2.googleapis.com/device/code",
 }
 

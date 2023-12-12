@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"mime"
 	"net/http"
@@ -257,7 +256,7 @@ func doTokenRoundTrip(ctx context.Context, req *http.Request) (*Token, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1<<20))
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	r.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("oauth2: cannot fetch token: %v", err)
@@ -314,7 +313,7 @@ func doTokenRoundTrip(ctx context.Context, req *http.Request) (*Token, error) {
 			Expiry:       tj.expiry(),
 			Raw:          make(map[string]interface{}),
 		}
-		json.Unmarshal(body, &token.Raw) // no error checks for optional fields
+		_ = json.Unmarshal(body, &token.Raw) // no error checks for optional fields
 	}
 	// according to spec, servers should respond status 400 in error case
 	// https://www.rfc-editor.org/rfc/rfc6749#section-5.2

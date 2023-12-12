@@ -13,7 +13,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -98,7 +97,7 @@ type jwtSource struct {
 	conf *Config
 }
 
-func (js jwtSource) Token() (*oauth2.Token, error) {
+func (js jwtSource) Token() (token *oauth2.Token, err error) {
 	pk, err := internal.ParseKey(js.conf.PrivateKey)
 	if err != nil {
 		return nil, err
@@ -136,7 +135,7 @@ func (js jwtSource) Token() (*oauth2.Token, error) {
 		return nil, fmt.Errorf("oauth2: cannot fetch token: %v", err)
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, fmt.Errorf("oauth2: cannot fetch token: %v", err)
 	}
@@ -153,28 +152,29 @@ func (js jwtSource) Token() (*oauth2.Token, error) {
 		IDToken     string `json:"id_token"`
 		ExpiresIn   int64  `json:"expires_in"` // relative seconds from now
 	}
-	if err := json.Unmarshal(body, &tokenRes); err != nil {
+	if err = json.Unmarshal(body, &tokenRes); err != nil {
 		return nil, fmt.Errorf("oauth2: cannot fetch token: %v", err)
 	}
-	token := &oauth2.Token{
+	token = &oauth2.Token{
 		AccessToken: tokenRes.AccessToken,
 		TokenType:   tokenRes.TokenType,
 	}
 	raw := make(map[string]interface{})
-	json.Unmarshal(body, &raw) // no error checks for optional fields
+	_ = json.Unmarshal(body, &raw) // no error checks for optional fields
 	token = token.WithExtra(raw)
 
 	if secs := tokenRes.ExpiresIn; secs > 0 {
 		token.Expiry = time.Now().Add(time.Duration(secs) * time.Second)
 	}
-	if v := tokenRes.IDToken; v != "" {
+
+	if tokenRaw := tokenRes.IDToken; tokenRaw != "" {
 		// decode returned id token to get expiry
-		claimSet, err := jws.Decode(v)
-		if err != nil {
+		if claimSet, err = jws.Decode(tokenRaw); err != nil {
 			return nil, fmt.Errorf("oauth2: error decoding JWT token: %v", err)
 		}
 		token.Expiry = time.Unix(claimSet.Exp, 0)
 	}
+
 	if js.conf.UseIDToken {
 		if tokenRes.IDToken == "" {
 			return nil, fmt.Errorf("oauth2: response doesn't have JWT token")

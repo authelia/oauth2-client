@@ -6,7 +6,7 @@ package externalaccount
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,7 +30,7 @@ func createImpersonationServer(urlWanted, authWanted, bodyWanted, response strin
 		if got, want := headerContentType, "application/json"; got != want {
 			t.Errorf("got %v but want %v", got, want)
 		}
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Fatalf("Failed reading request body: %v.", err)
 		}
@@ -59,7 +59,7 @@ func createTargetServer(metricsHeaderWanted string, t *testing.T) *httptest.Serv
 		if got, want := headerMetrics, metricsHeaderWanted; got != want {
 			t.Errorf("got %v but want %v", got, want)
 		}
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Fatalf("Failed reading request body: %v.", err)
 		}
