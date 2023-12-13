@@ -256,3 +256,19 @@ func AWSCognito(domain string) oauth2.Endpoint {
 		TokenURL: domain + "/oauth2/token",
 	}
 }
+
+// Authelia returns a new oauth2.Endpoint for the Authelia OpenID Connect 1.0 provider when supplied with the domain of
+// the specific Authelia instance.
+//
+// For more information see:
+// https://www.authelia.com/integration/openid-connect/introduction/#discoverable-endpoints
+func Authelia(domain string) oauth2.Endpoint {
+	domain = strings.TrimRight(domain, "/")
+
+	return oauth2.Endpoint{
+		AuthURL:       domain + "/api/oidc/authorization",
+		PushedAuthURL: domain + "/api/oidc/pushed-authorization-request",
+		TokenURL:      domain + "/api/oidc/token",
+		AuthStyle:     oauth2.AuthStyleInParams,
+	}
+}
