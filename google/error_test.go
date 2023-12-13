@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"golang.org/x/oauth2"
+	"authelia.com/client/oauth2"
 )
 
 func TestAuthenticationError_Temporary(t *testing.T) {

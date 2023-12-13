@@ -11,7 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"golang.org/x/oauth2"
+	"authelia.com/client/oauth2"
 )
 
 func TestTokenExchange_Success(t *testing.T) {

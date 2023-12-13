@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/oauth2/internal"
+	"authelia.com/client/oauth2/internal"
 )
 
 // https://datatracker.ietf.org/doc/html/rfc8628#section-3.5
@@ -55,25 +55,30 @@ func (d DeviceAuthResponse) MarshalJSON() ([]byte, error) {
 
 }
 
-func (c *DeviceAuthResponse) UnmarshalJSON(data []byte) error {
+func (d *DeviceAuthResponse) UnmarshalJSON(data []byte) (err error) {
 	type Alias DeviceAuthResponse
+
 	aux := &struct {
 		ExpiresIn int64 `json:"expires_in"`
 		// workaround misspelling of verification_uri
 		VerificationURL string `json:"verification_url"`
 		*Alias
 	}{
-		Alias: (*Alias)(c),
+		Alias: (*Alias)(d),
 	}
-	if err := json.Unmarshal(data, &aux); err != nil {
+
+	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
+
 	if aux.ExpiresIn != 0 {
-		c.Expiry = time.Now().UTC().Add(time.Second * time.Duration(aux.ExpiresIn))
+		d.Expiry = time.Now().UTC().Add(time.Second * time.Duration(aux.ExpiresIn))
 	}
-	if c.VerificationURI == "" {
-		c.VerificationURI = aux.VerificationURL
+
+	if d.VerificationURI == "" {
+		d.VerificationURI = aux.VerificationURL
 	}
+
 	return nil
 }
 
@@ -84,12 +89,15 @@ func (c *Config) DeviceAuth(ctx context.Context, opts ...AuthCodeOption) (*Devic
 	v := url.Values{
 		"client_id": {c.ClientID},
 	}
+
 	if len(c.Scopes) > 0 {
 		v.Set("scope", strings.Join(c.Scopes, " "))
 	}
+
 	for _, opt := range opts {
 		opt.setValue(v)
 	}
+
 	return retrieveDeviceAuth(ctx, c, v)
 }
 
@@ -102,6 +110,7 @@ func retrieveDeviceAuth(ctx context.Context, c *Config, v url.Values) (*DeviceAu
 	if err != nil {
 		return nil, err
 	}
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
@@ -115,6 +124,7 @@ func retrieveDeviceAuth(ctx context.Context, c *Config, v url.Values) (*DeviceAu
 	if err != nil {
 		return nil, fmt.Errorf("oauth2: cannot auth device: %v", err)
 	}
+
 	if code := r.StatusCode; code < 200 || code > 299 {
 		return nil, &RetrieveError{
 			Response: r,
@@ -123,8 +133,8 @@ func retrieveDeviceAuth(ctx context.Context, c *Config, v url.Values) (*DeviceAu
 	}
 
 	da := &DeviceAuthResponse{}
-	err = json.Unmarshal(body, &da)
-	if err != nil {
+
+	if err = json.Unmarshal(body, &da); err != nil {
 		return nil, fmt.Errorf("unmarshal %s", err)
 	}
 

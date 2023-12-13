@@ -15,8 +15,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/authhandler"
+
+	"authelia.com/client/oauth2"
+	"authelia.com/client/oauth2/authhandler"
 )
 
 const (
@@ -158,16 +159,6 @@ func FindDefaultCredentialsWithParams(ctx context.Context, params CredentialsPar
 	filename := wellKnownFile()
 	if b, err := os.ReadFile(filename); err == nil {
 		return CredentialsFromJSONWithParams(ctx, b, params)
-	}
-
-	// Third, if we're on a Google App Engine standard first generation runtime (<= Go 1.9)
-	// use those credentials. App Engine standard second generation runtimes (>= Go 1.11)
-	// and App Engine flexible use ComputeTokenSource and the metadata server.
-	if appengineTokenFunc != nil {
-		return &Credentials{
-			ProjectID:   appengineAppIDFunc(ctx),
-			TokenSource: AppEngineTokenSource(ctx, params.Scopes...),
-		}, nil
 	}
 
 	// Fourth, if we're on Google Compute Engine, an App Engine standard second generation runtime,

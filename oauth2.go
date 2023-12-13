@@ -6,7 +6,7 @@
 // OAuth2 authorized and authenticated HTTP requests,
 // as specified in RFC 6749.
 // It can additionally grant authorization with Bearer JWT.
-package oauth2 // import "golang.org/x/oauth2"
+package oauth2 // import "authelia.com/client/oauth2"
 
 import (
 	"bytes"
@@ -18,13 +18,13 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/oauth2/internal"
+	"authelia.com/client/oauth2/internal"
 )
 
 // Config describes a typical 3-legged OAuth2 flow, with both the
 // client application information and the server's endpoint URLs.
 // For the client credentials 2-legged OAuth2 flow, see the clientcredentials
-// package (https://golang.org/x/oauth2/clientcredentials).
+// package (https://authelia.com/client/oauth2/clientcredentials).
 type Config struct {
 	// ClientID is the application's ID.
 	ClientID string
@@ -153,7 +153,8 @@ func SetAuthURLParam(key, value string) AuthCodeOption {
 // PKCE), https://www.oauth.com/oauth2-servers/pkce/ and
 // https://www.ietf.org/archive/id/draft-ietf-oauth-v2-1-09.html#name-cross-site-request-forgery (describing both approaches)
 func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string {
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
+
 	buf.WriteString(c.Endpoint.AuthURL)
 
 	v := c.getAuthCodeValues(state, opts...)
@@ -163,7 +164,9 @@ func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string {
 	} else {
 		buf.WriteByte('?')
 	}
+
 	buf.WriteString(v.Encode())
+
 	return buf.String()
 }
 

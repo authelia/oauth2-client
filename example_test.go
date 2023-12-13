@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"time"
 
-	"golang.org/x/oauth2"
+	"authelia.com/client/oauth2"
 )
 
 func ExampleConfig() {
