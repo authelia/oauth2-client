@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"os"
 
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"golang.org/x/oauth2/jwt"
+	"authelia.com/client/oauth2"
+	"authelia.com/client/oauth2/google"
+	"authelia.com/client/oauth2/internal/jwt"
 )
 
 func ExampleDefaultClient() {

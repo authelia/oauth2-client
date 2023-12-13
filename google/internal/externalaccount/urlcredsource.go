@@ -12,7 +12,7 @@ import (
 	"io"
 	"net/http"
 
-	"golang.org/x/oauth2"
+	"authelia.com/client/oauth2"
 )
 
 type urlCredentialSource struct {

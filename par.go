@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/oauth2/internal"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"authelia.com/client/oauth2/internal"
 )
 
 // PushedAuthResponse describes a successful RFC 8628 Device Authorization Response

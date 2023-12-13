@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/oauth2/jws"
+	"authelia.com/client/oauth2/internal/jws"
 )
 
 var (

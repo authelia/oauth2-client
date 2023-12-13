@@ -14,10 +14,11 @@ import (
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google/internal/externalaccount"
-	"golang.org/x/oauth2/google/internal/externalaccountauthorizeduser"
-	"golang.org/x/oauth2/jwt"
+
+	"authelia.com/client/oauth2"
+	"authelia.com/client/oauth2/google/internal/externalaccount"
+	"authelia.com/client/oauth2/google/internal/externalaccountauthorizeduser"
+	"authelia.com/client/oauth2/internal/jwt"
 )
 
 // Endpoint is Google's OAuth 2.0 default endpoint.

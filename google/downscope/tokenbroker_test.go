@@ -8,10 +8,9 @@ import (
 	"context"
 	"fmt"
 
-	"golang.org/x/oauth2/google"
-
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google/downscope"
+	"authelia.com/client/oauth2"
+	"authelia.com/client/oauth2/google"
+	"authelia.com/client/oauth2/google/downscope"
 )
 
 func ExampleNewTokenSource() {

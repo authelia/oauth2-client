@@ -6,16 +6,11 @@ package google
 
 import (
 	"context"
-	"time"
+	"log"
+	"sync"
 
-	"golang.org/x/oauth2"
+	"authelia.com/client/oauth2"
 )
-
-// Set at init time by appengine_gen1.go. If nil, we're not on App Engine standard first generation (<= Go 1.9) or App Engine flexible.
-var appengineTokenFunc func(c context.Context, scopes ...string) (token string, expiry time.Time, err error)
-
-// Set at init time by appengine_gen1.go. If nil, we're not on App Engine standard first generation (<= Go 1.9) or App Engine flexible.
-var appengineAppIDFunc func(c context.Context) string
 
 // AppEngineTokenSource returns a token source that fetches tokens from either
 // the current application's service account or from the metadata server,
@@ -35,4 +30,14 @@ var appengineAppIDFunc func(c context.Context) string
 // which DefaultTokenSource will use in this case) instead.
 func AppEngineTokenSource(ctx context.Context, scope ...string) oauth2.TokenSource {
 	return appEngineTokenSource(ctx, scope...)
+}
+
+var logOnce sync.Once // only spam about deprecation once
+
+// See comment on AppEngineTokenSource in appengine.go.
+func appEngineTokenSource(ctx context.Context, scope ...string) oauth2.TokenSource {
+	logOnce.Do(func() {
+		log.Print("google: AppEngineTokenSource is deprecated on App Engine standard second generation runtimes (>= Go 1.11) and App Engine flexible. Please use DefaultTokenSource or ComputeTokenSource.")
+	})
+	return ComputeTokenSource("")
 }

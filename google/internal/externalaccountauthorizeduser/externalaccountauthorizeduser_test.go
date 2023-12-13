@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google/internal/stsexchange"
+	"authelia.com/client/oauth2"
+	"authelia.com/client/oauth2/google/internal/stsexchange"
 )
 
 const expiryDelta = 10 * time.Second

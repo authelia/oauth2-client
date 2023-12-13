@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/oauth2"
+	"authelia.com/client/oauth2"
 )
 
 func defaultHeader() http.Header {

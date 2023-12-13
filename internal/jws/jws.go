@@ -4,15 +4,9 @@
 
 // Package jws provides a partial implementation
 // of JSON Web Signature encoding and decoding.
-// It exists to support the golang.org/x/oauth2 package.
 //
 // See RFC 7515.
-//
-// Deprecated: this package is not intended for public use and might be
-// removed in the future. It exists for internal use only.
-// Please switch to another JWS package or copy this package into your own
-// source tree.
-package jws // import "golang.org/x/oauth2/jws"
+package jws
 
 import (
 	"bytes"
