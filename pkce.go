@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"net/url"
 )
 
@@ -15,6 +16,72 @@ const (
 	codeChallengeMethodKey = "code_challenge_method"
 	codeVerifierKey        = "code_verifier"
 )
+
+func NewPKCE() (pkce *PKCE, err error) {
+	var verifier []byte
+
+	if verifier, err = getRandomBytes(128, charsetRFC3986Unreserved); err != nil {
+		return nil, fmt.Errorf("error occurred generating random verifier for PKCE: %w", err)
+	}
+
+	pkce = &PKCE{
+		verifier: verifier,
+	}
+
+	return pkce, nil
+}
+
+func NewPKCEWithValues(verifier []byte, plain bool) (pkce *PKCE) {
+	return &PKCE{
+		verifier: verifier,
+		plain:    plain,
+	}
+}
+
+type PKCE struct {
+	verifier []byte
+	plain    bool
+}
+
+// ChallengeMethod returns a string representation of the current challenge method.
+func (pkce *PKCE) ChallengeMethod() string {
+	if pkce.plain {
+		return "plain"
+	}
+
+	return "S256"
+}
+
+// Verifier returns a copy of the current verifier value.
+func (pkce *PKCE) Verifier() []byte {
+	verifier := make([]byte, len(pkce.verifier))
+
+	copy(verifier, pkce.verifier)
+
+	return verifier
+}
+
+// UsePlain disables the requirement for S256 and uses the code challenge method plain instead.
+func (pkce *PKCE) UsePlain() {
+	pkce.plain = true
+}
+
+// AuthCodeOptionChallenge returns the option used for the challenge phase of PKCE i.e. the Config.PushedAuth or
+// Config.AuthCodeURL functions.
+func (pkce *PKCE) AuthCodeOptionChallenge() AuthCodeOption {
+	if pkce.plain {
+		return challengeOption{"plain", string(pkce.verifier)}
+	}
+
+	verifier := sha256.Sum256(pkce.verifier)
+
+	return challengeOption{"S256", base64.RawURLEncoding.EncodeToString(verifier[:])}
+}
+
+// AuthCodeOptionVerifier returns the option used for the verifier phase of PKCE i.e. the Config.Exchange function.
+func (pkce *PKCE) AuthCodeOptionVerifier() AuthCodeOption {
+	return setParam{k: codeVerifierKey, v: string(pkce.verifier)}
+}
 
 // GenerateVerifier generates a PKCE code verifier with 32 octets of randomness.
 // This follows recommendations in RFC 7636.
