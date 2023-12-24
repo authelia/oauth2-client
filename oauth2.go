@@ -241,6 +241,20 @@ func (c *Config) Exchange(ctx context.Context, code string, opts ...AuthCodeOpti
 	return retrieveToken(ctx, c, v)
 }
 
+// RetrieveToken is similar to Exchange except the grant type and code is not configured. This allows for manually
+// performing flows other than the Authorization Code Flow.
+func (c *Config) RetrieveToken(ctx context.Context, opts ...AuthCodeOption) (*Token, error) {
+	v := url.Values{}
+
+	if c.RedirectURL != "" {
+		v.Set("redirect_uri", c.RedirectURL)
+	}
+	for _, opt := range opts {
+		opt.setValue(v)
+	}
+	return retrieveToken(ctx, c, v)
+}
+
 // Client returns an HTTP client using the provided token.
 // The token will auto-refresh as necessary. The underlying
 // HTTP transport will be obtained using the provided context.
