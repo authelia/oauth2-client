@@ -266,9 +266,13 @@ func Authelia(domain string) oauth2.Endpoint {
 	domain = strings.TrimRight(domain, "/")
 
 	return oauth2.Endpoint{
-		AuthURL:       domain + "/api/oidc/authorization",
-		PushedAuthURL: domain + "/api/oidc/pushed-authorization-request",
-		TokenURL:      domain + "/api/oidc/token",
-		AuthStyle:     oauth2.AuthStyleInParams,
+		AuthURL:          domain + "/api/oidc/authorization",
+		PushedAuthURL:    domain + "/api/oidc/pushed-authorization-request",
+		TokenURL:         domain + "/api/oidc/token",
+		IntrospectionURL: domain + "/api/oidc/introspection",
+		RevocationURL:    domain + "/api/oidc/revocation",
+		UserinfoURL:      domain + "/api/oidc/userinfo",
+		JWKSURL:          domain + "/jwks.json",
+		AuthStyle:        oauth2.AuthStyleInParams,
 	}
 }
