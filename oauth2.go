@@ -61,10 +61,14 @@ type TokenSource interface {
 // Endpoint represents an OAuth 2.0 provider's authorization and token
 // endpoint URLs.
 type Endpoint struct {
-	AuthURL       string
-	DeviceAuthURL string
-	PushedAuthURL string
-	TokenURL      string
+	AuthURL          string
+	DeviceAuthURL    string
+	PushedAuthURL    string
+	TokenURL         string
+	IntrospectionURL string
+	RevocationURL    string
+	UserinfoURL      string
+	JWKSURL          string
 
 	// AuthStyle optionally specifies how the endpoint wants the
 	// client ID & client secret sent. The zero value means to
