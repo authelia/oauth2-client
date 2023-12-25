@@ -127,8 +127,10 @@ func retrieveDeviceAuth(ctx context.Context, c *Config, v url.Values) (*DeviceAu
 
 	if code := r.StatusCode; code < 200 || code > 299 {
 		return nil, &RetrieveError{
-			Response: r,
-			Body:     body,
+			&BaseError{
+				Response: r,
+				Body:     body,
+			},
 		}
 	}
 

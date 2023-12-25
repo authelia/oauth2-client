@@ -62,8 +62,10 @@ func (c *Config) PushedAuth(ctx context.Context, state string, opts ...AuthCodeO
 	}
 	if code := r.StatusCode; code < 200 || code > 299 {
 		return nil, nil, &RetrieveError{
-			Response: r,
-			Body:     body,
+			BaseError: &BaseError{
+				Response: r,
+				Body:     body,
+			},
 		}
 	}
 

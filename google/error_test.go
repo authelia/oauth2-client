@@ -47,8 +47,10 @@ func TestAuthenticationError_Temporary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ae := &AuthenticationError{
 				err: &oauth2.RetrieveError{
-					Response: &http.Response{
-						StatusCode: tt.code,
+					&oauth2.BaseError{
+						Response: &http.Response{
+							StatusCode: tt.code,
+						},
 					},
 				},
 			}
@@ -83,8 +85,10 @@ func (s *errTokenSource) Token() (*oauth2.Token, error) {
 
 func TestErrWrappingTokenSource_TokenError(t *testing.T) {
 	re := &oauth2.RetrieveError{
-		Response: &http.Response{
-			StatusCode: 500,
+		BaseError: &oauth2.BaseError{
+			Response: &http.Response{
+				StatusCode: 500,
+			},
 		},
 	}
 	ts := errWrappingTokenSource{

@@ -311,7 +311,7 @@ func TestTokenRetrieveError(t *testing.T) {
 		t.Fatalf("got %T error, expected *RetrieveError", err)
 	}
 	// Test error string for backwards compatibility
-	expected := fmt.Sprintf("oauth2: cannot fetch token: %v\nResponse: %s", "400 Bad Request", `{"error": "invalid_grant"}`)
+	expected := fmt.Sprintf("oauth2: request failed: %v\nResponse: %s", "400 Bad Request", `{"error": "invalid_grant"}`)
 	if errStr := err.Error(); errStr != expected {
 		t.Fatalf("got %#v, expected %#v", errStr, expected)
 	}

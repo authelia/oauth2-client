@@ -3,7 +3,6 @@ package oauth2
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"authelia.com/client/oauth2/internal"
@@ -63,7 +62,9 @@ func (c *Config) RevokeToken(ctx context.Context, token *Token, opts ...Revocati
 	for _, v := range vals {
 		if err = internal.RevokeToken(ctx, c.ClientID, c.ClientSecret, c.Endpoint.RevocationURL, v, internal.AuthStyle(c.Endpoint.AuthStyle), c.authStyleCache.Get()); err != nil {
 			if rErr, ok := err.(*internal.RevokeError); ok {
-				return (*RevokeError)(rErr)
+				xErr := (*BaseError)(rErr)
+
+				return &RevokeError{xErr}
 			}
 			return err
 		}
@@ -73,25 +74,7 @@ func (c *Config) RevokeToken(ctx context.Context, token *Token, opts ...Revocati
 }
 
 type RevokeError struct {
-	Response         *http.Response
-	Body             []byte
-	ErrorCode        string
-	ErrorDescription string
-	ErrorURI         string
-}
-
-func (r *RevokeError) Error() string {
-	if r.ErrorCode != "" {
-		s := fmt.Sprintf("oauth2: %q", r.ErrorCode)
-		if r.ErrorDescription != "" {
-			s += fmt.Sprintf(" %q", r.ErrorDescription)
-		}
-		if r.ErrorURI != "" {
-			s += fmt.Sprintf(" %q", r.ErrorURI)
-		}
-		return s
-	}
-	return fmt.Sprintf("oauth2: cannot revoke token: %v\nResponse: %s", r.Response.Status, r.Body)
+	*BaseError
 }
 
 type RevocationOption interface {

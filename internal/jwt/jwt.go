@@ -141,8 +141,10 @@ func (js jwtSource) Token() (token *oauth2.Token, err error) {
 	}
 	if c := resp.StatusCode; c < 200 || c > 299 {
 		return nil, &oauth2.RetrieveError{
-			Response: resp,
-			Body:     body,
+			BaseError: &oauth2.BaseError{
+				Response: resp,
+				Body:     body,
+			},
 		}
 	}
 	// tokenRes is the JSON response body.
