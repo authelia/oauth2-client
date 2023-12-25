@@ -9,7 +9,7 @@ import (
 )
 
 // RevokeToken allows for simple token revocation.
-func (c *Config) RevokeToken(ctx context.Context, token *Token, opts ...RevocationOption) (err error) {
+func (c *Config) RevokeToken(ctx context.Context, token *Token, opts ...IntrospectionRevocationOption) (err error) {
 	if token == nil {
 		return fmt.Errorf("error revoking token: no token was provided")
 	}
@@ -61,7 +61,7 @@ func (c *Config) RevokeToken(ctx context.Context, token *Token, opts ...Revocati
 
 	for _, v := range vals {
 		if err = internal.RevokeToken(ctx, c.ClientID, c.ClientSecret, c.Endpoint.RevocationURL, v, internal.AuthStyle(c.Endpoint.AuthStyle), c.authStyleCache.Get()); err != nil {
-			if rErr, ok := err.(*internal.RevokeError); ok {
+			if rErr, ok := err.(*internal.BaseError); ok {
 				xErr := (*BaseError)(rErr)
 
 				return &RevokeError{xErr}
@@ -77,23 +77,24 @@ type RevokeError struct {
 	*BaseError
 }
 
-type RevocationOption interface {
+// IntrospectionRevocationOption is an interface that can be utilized for both introspection and revocation requests.
+type IntrospectionRevocationOption interface {
 	setValue(vals url.Values)
 	appendTokenTypeHints(tths []string) []string
 }
 
-// SetRevocationURLParam builds a RevocationOption which passes key/value parameters
+// SetRevocationURLParam builds a IntrospectionRevocationOption which passes key/value parameters
 // to a provider's revocation endpoint.
-func SetRevocationURLParam(key, value string) RevocationOption {
+func SetRevocationURLParam(key, value string) IntrospectionRevocationOption {
 	return setRevocationValue{key, value}
 }
 
-// AddRevocationTokenTypes builds a RevocationOption which explicitly adds a token
+// AddRevocationTokenTypes builds a IntrospectionRevocationOption which explicitly adds a token
 // type hint to the revocation process. By default the oauth2.RevokeToken method
 // will perform the access token revocation. If the authorization server requires
 // the refresh token is revoked manually then use this option like
 // oauth.AddRevocationTokenTypes("access_token", "refresh_token").
-func AddRevocationTokenTypes(values ...string) RevocationOption {
+func AddRevocationTokenTypes(values ...string) IntrospectionRevocationOption {
 	return addRevocationTokenTypeHints{values: values}
 }
 
