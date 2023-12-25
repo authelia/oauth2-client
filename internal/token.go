@@ -76,6 +76,12 @@ func (e *tokenJSON) expiry() (t time.Time) {
 	return
 }
 
+type errorJSON struct {
+	ErrorCode        string `json:"error"`
+	ErrorDescription string `json:"error_description"`
+	ErrorURI         string `json:"error_uri"`
+}
+
 type expirationTime int32
 
 func (e *expirationTime) UnmarshalJSON(b []byte) error {
@@ -171,15 +177,15 @@ func (c *AuthStyleCache) setAuthStyle(tokenURL string, v AuthStyle) {
 	c.m[tokenURL] = v
 }
 
-// newTokenRequest returns a new *http.Request to retrieve a new token
-// from tokenURL using the provided clientID, clientSecret, and POST
-// body parameters.
+// newPOSTRequest returns a new *http.Request to retrieve a new token
+// or revoke an existing one using the uri and the provided clientID,
+// clientSecret, and POST body parameters.
 //
 // inParams is whether the clientID & clientSecret should be encoded
 // as the POST body. An 'inParams' value of true means to send it in
 // the POST body (along with any values in v); false means to send it
 // in the Authorization header.
-func newTokenRequest(tokenURL, clientID, clientSecret string, v url.Values, authStyle AuthStyle) (*http.Request, error) {
+func newPOSTRequest(uri, clientID, clientSecret string, v url.Values, authStyle AuthStyle) (*http.Request, error) {
 	if authStyle == AuthStyleInParams {
 		v = cloneURLValues(v)
 		if clientID != "" {
@@ -189,7 +195,7 @@ func newTokenRequest(tokenURL, clientID, clientSecret string, v url.Values, auth
 			v.Set("client_secret", clientSecret)
 		}
 	}
-	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(v.Encode()))
+	req, err := http.NewRequest("POST", uri, strings.NewReader(v.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +214,33 @@ func cloneURLValues(v url.Values) url.Values {
 	return v2
 }
 
+func RevokeToken(ctx context.Context, clientID, clientSecret, revocationURL string, v url.Values, authStyle AuthStyle, styleCache *AuthStyleCache) error {
+	needsAuthStyleProbe := authStyle == 0
+	if needsAuthStyleProbe {
+		if style, ok := styleCache.lookupAuthStyle(revocationURL); ok {
+			authStyle = style
+			needsAuthStyleProbe = false
+		} else {
+			authStyle = AuthStyleInHeader // the first way we'll try
+		}
+	}
+	req, err := newPOSTRequest(revocationURL, clientID, clientSecret, v, authStyle)
+	if err != nil {
+		return err
+	}
+
+	if err = doRevokeRoundTrip(ctx, req); err != nil && needsAuthStyleProbe {
+		authStyle = AuthStyleInParams // the second way we'll try
+		req, _ = newPOSTRequest(revocationURL, clientID, clientSecret, v, authStyle)
+		err = doRevokeRoundTrip(ctx, req)
+	}
+	if needsAuthStyleProbe && err == nil {
+		styleCache.setAuthStyle(revocationURL, authStyle)
+	}
+
+	return err
+}
+
 func RetrieveToken(ctx context.Context, clientID, clientSecret, tokenURL string, v url.Values, authStyle AuthStyle, styleCache *AuthStyleCache) (*Token, error) {
 	needsAuthStyleProbe := authStyle == 0
 	if needsAuthStyleProbe {
@@ -218,7 +251,7 @@ func RetrieveToken(ctx context.Context, clientID, clientSecret, tokenURL string,
 			authStyle = AuthStyleInHeader // the first way we'll try
 		}
 	}
-	req, err := newTokenRequest(tokenURL, clientID, clientSecret, v, authStyle)
+	req, err := newPOSTRequest(tokenURL, clientID, clientSecret, v, authStyle)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +270,7 @@ func RetrieveToken(ctx context.Context, clientID, clientSecret, tokenURL string,
 		// they went, but maintaining it didn't scale & got annoying.
 		// So just try both ways.
 		authStyle = AuthStyleInParams // the second way we'll try
-		req, _ = newTokenRequest(tokenURL, clientID, clientSecret, v, authStyle)
+		req, _ = newPOSTRequest(tokenURL, clientID, clientSecret, v, authStyle)
 		token, err = doTokenRoundTrip(ctx, req)
 	}
 	if needsAuthStyleProbe && err == nil {
@@ -249,6 +282,55 @@ func RetrieveToken(ctx context.Context, clientID, clientSecret, tokenURL string,
 		token.RefreshToken = v.Get("refresh_token")
 	}
 	return token, err
+}
+
+func doRevokeRoundTrip(ctx context.Context, req *http.Request) error {
+	r, err := ContextClient(ctx).Do(req.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	r.Body.Close()
+	if err != nil {
+		return fmt.Errorf("oauth2: cannot revoke token: %v", err)
+	}
+
+	failureStatus := r.StatusCode < 200 || r.StatusCode > 299
+
+	if !failureStatus {
+		return nil
+	}
+
+	revokeError := &RevokeError{
+		Response: r,
+		Body:     body,
+		// attempt to populate error detail below
+	}
+
+	content, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+
+	switch content {
+	case "application/x-www-form-urlencoded", "text/plain":
+		vals, err := url.ParseQuery(string(body))
+		if err != nil {
+			return revokeError
+		}
+
+		revokeError.ErrorCode = vals.Get("error")
+		revokeError.ErrorDescription = vals.Get("error_description")
+		revokeError.ErrorURI = vals.Get("error_uri")
+	default:
+		var rj errorJSON
+		if err = json.Unmarshal(body, &rj); err != nil {
+			return revokeError
+		}
+
+		revokeError.ErrorCode = rj.ErrorCode
+		revokeError.ErrorDescription = rj.ErrorDescription
+		revokeError.ErrorURI = rj.ErrorURI
+	}
+
+	return revokeError
 }
 
 func doTokenRoundTrip(ctx context.Context, req *http.Request) (*Token, error) {
@@ -348,4 +430,26 @@ func (r *RetrieveError) Error() string {
 		return s
 	}
 	return fmt.Sprintf("oauth2: cannot fetch token: %v\nResponse: %s", r.Response.Status, r.Body)
+}
+
+type RevokeError struct {
+	Response         *http.Response
+	Body             []byte
+	ErrorCode        string
+	ErrorDescription string
+	ErrorURI         string
+}
+
+func (r *RevokeError) Error() string {
+	if r.ErrorCode != "" {
+		s := fmt.Sprintf("oauth2: %q", r.ErrorCode)
+		if r.ErrorDescription != "" {
+			s += fmt.Sprintf(" %q", r.ErrorDescription)
+		}
+		if r.ErrorURI != "" {
+			s += fmt.Sprintf(" %q", r.ErrorURI)
+		}
+		return s
+	}
+	return fmt.Sprintf("oauth2: cannot revoke token: %v\nResponse: %s", r.Response.Status, r.Body)
 }

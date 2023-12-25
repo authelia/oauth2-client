@@ -27,7 +27,7 @@ Several differences or intended differences exist between this package and the g
 - Add support for:
   - [ ] [JWT Secured Authorization Response Mode for OAuth 2.0](https://openid.net/specs/oauth-v2-jarm.html) (JARM) implementation.
   - [ ] [OpenID Connect 1.0 Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html) implementation.
-  - [ ] [RFC7009: OAuth 2.0 Token Revocation](https://datatracker.ietf.org/doc/html/rfc7009)
+  - [x] [RFC7009: OAuth 2.0 Token Revocation](https://datatracker.ietf.org/doc/html/rfc7009)
   - [ ] [RFC8414: OAuth 2.0 Authorization Server Metadata](https://datatracker.ietf.org/doc/html/rfc8414) implementation.
   - [x] [RFC9126: OAuth 2.0 Pushed Authorization Requests](https://datatracker.ietf.org/doc/html/rfc9126) (PAR) implementation.
 - Leverage well maintained packages:
