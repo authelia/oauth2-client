@@ -170,6 +170,13 @@ func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string {
 	return buf.String()
 }
 
+// ParsedAuthCodeURL is the same as AuthCodeURL just it wraps the result in url.Parse.
+func (c *Config) ParsedAuthCodeURL(state string, opts ...AuthCodeOption) (authURL *url.URL, err error) {
+	raw := c.AuthCodeURL(state, opts...)
+
+	return url.Parse(raw)
+}
+
 func (c *Config) getAuthCodeValues(state string, opts ...AuthCodeOption) url.Values {
 	v := url.Values{
 		"response_type": {"code"},
@@ -241,9 +248,9 @@ func (c *Config) Exchange(ctx context.Context, code string, opts ...AuthCodeOpti
 	return retrieveToken(ctx, c, v)
 }
 
-// RetrieveToken is similar to Exchange except the grant type and code is not configured. This allows for manually
+// Token is similar to Exchange except the grant type and code is not configured. This allows for manually
 // performing flows other than the Authorization Code Flow.
-func (c *Config) RetrieveToken(ctx context.Context, opts ...AuthCodeOption) (*Token, error) {
+func (c *Config) Token(ctx context.Context, opts ...AuthCodeOption) (*Token, error) {
 	v := url.Values{}
 
 	if c.RedirectURL != "" {
