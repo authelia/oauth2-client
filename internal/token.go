@@ -214,6 +214,53 @@ func cloneURLValues(v url.Values) url.Values {
 	return v2
 }
 
+type Introspection struct {
+	Active           bool           `json:"active"`
+	JTI              string         `json:"jti,omitempty"`
+	Issuer           string         `json:"iss,omitempty"`
+	Scope            string         `json:"scope,omitempty"`
+	Audience         []string       `json:"aud,omitempty"`
+	ClientID         string         `json:"client_id,omitempty"`
+	TokenType        string         `json:"token_type,omitempty"`
+	Expiry           time.Time      `json:"exp,omitempty"`
+	IssuedAt         time.Time      `json:"iat,omitempty"`
+	NotBefore        time.Time      `json:"nbf,omitempty"`
+	Subject          string         `json:"sub,omitempty"`
+	Error            string         `json:"error,omitempty"`
+	ErrorDescription string         `json:"error_description,omitempty"`
+	ErrorURI         string         `json:"error_uri,omitempty"`
+	AuthorizedParty  string         `json:"azp,omitempty"`
+	Username         string         `json:"username,omitempty"`
+	Raw              map[string]any `json:"-"`
+}
+
+func IntrospectToken(ctx context.Context, clientID, clientSecret, introspectionURL string, v url.Values, authStyle AuthStyle, styleCache *AuthStyleCache) (introspection *Introspection, err error) {
+	needsAuthStyleProbe := authStyle == 0
+	if needsAuthStyleProbe {
+		if style, ok := styleCache.lookupAuthStyle(introspectionURL); ok {
+			authStyle = style
+			needsAuthStyleProbe = false
+		} else {
+			authStyle = AuthStyleInHeader // the first way we'll try
+		}
+	}
+	req, err := newPOSTRequest(introspectionURL, clientID, clientSecret, v, authStyle)
+	if err != nil {
+		return nil, err
+	}
+
+	if introspection, err = doIntrospectRoundTrip(ctx, req); err != nil && needsAuthStyleProbe {
+		authStyle = AuthStyleInParams // the second way we'll try
+		req, _ = newPOSTRequest(introspectionURL, clientID, clientSecret, v, authStyle)
+		introspection, err = doIntrospectRoundTrip(ctx, req)
+	}
+	if needsAuthStyleProbe && err == nil {
+		styleCache.setAuthStyle(introspectionURL, authStyle)
+	}
+
+	return introspection, err
+}
+
 func RevokeToken(ctx context.Context, clientID, clientSecret, revocationURL string, v url.Values, authStyle AuthStyle, styleCache *AuthStyleCache) error {
 	needsAuthStyleProbe := authStyle == 0
 	if needsAuthStyleProbe {
@@ -284,6 +331,48 @@ func RetrieveToken(ctx context.Context, clientID, clientSecret, tokenURL string,
 	return token, err
 }
 
+func doIntrospectRoundTrip(ctx context.Context, req *http.Request) (introspection *Introspection, err error) {
+	r, err := ContextClient(ctx).Do(req.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	r.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("oauth2: cannot introspect token: %v", err)
+	}
+
+	content, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+
+	introspectError := &BaseError{
+		Response: r,
+		Body:     body,
+	}
+
+	switch content {
+	case "application/json":
+		resp := &Introspection{}
+
+		if err = json.Unmarshal(body, resp); err != nil {
+			// TODO: REMOVE.
+			fmt.Printf("error occurred unmarshalling object: %+v", err)
+
+			return nil, introspectError
+		}
+
+		if err = json.Unmarshal(body, &resp.Raw); err != nil {
+			// TODO: REMOVE.
+			fmt.Printf("error occurred unmarshalling raw: %+v", err)
+
+			return nil, introspectError
+		}
+
+		return resp, nil
+	}
+
+	return nil, introspectError
+}
+
 func doRevokeRoundTrip(ctx context.Context, req *http.Request) error {
 	r, err := ContextClient(ctx).Do(req.WithContext(ctx))
 	if err != nil {
@@ -295,13 +384,13 @@ func doRevokeRoundTrip(ctx context.Context, req *http.Request) error {
 		return fmt.Errorf("oauth2: cannot revoke token: %v", err)
 	}
 
-	failureStatus := r.StatusCode < 200 || r.StatusCode > 299
+	failureStatus := r.StatusCode < http.StatusOK || r.StatusCode >= http.StatusMultipleChoices
 
 	if !failureStatus {
 		return nil
 	}
 
-	revokeError := &RevokeError{
+	revokeError := &BaseError{
 		Response: r,
 		Body:     body,
 		// attempt to populate error detail below
@@ -344,7 +433,7 @@ func doTokenRoundTrip(ctx context.Context, req *http.Request) (*Token, error) {
 		return nil, fmt.Errorf("oauth2: cannot fetch token: %v", err)
 	}
 
-	failureStatus := r.StatusCode < 200 || r.StatusCode > 299
+	failureStatus := r.StatusCode < http.StatusOK || r.StatusCode >= http.StatusMultipleChoices
 	retrieveError := &RetrieveError{
 		Response: r,
 		Body:     body,
@@ -432,7 +521,7 @@ func (r *RetrieveError) Error() string {
 	return fmt.Sprintf("oauth2: cannot fetch token: %v\nResponse: %s", r.Response.Status, r.Body)
 }
 
-type RevokeError struct {
+type BaseError struct {
 	Response         *http.Response
 	Body             []byte
 	ErrorCode        string
@@ -440,7 +529,7 @@ type RevokeError struct {
 	ErrorURI         string
 }
 
-func (r *RevokeError) Error() string {
+func (r *BaseError) Error() string {
 	if r.ErrorCode != "" {
 		s := fmt.Sprintf("oauth2: %q", r.ErrorCode)
 		if r.ErrorDescription != "" {
@@ -451,5 +540,5 @@ func (r *RevokeError) Error() string {
 		}
 		return s
 	}
-	return fmt.Sprintf("oauth2: cannot revoke token: %v\nResponse: %s", r.Response.Status, r.Body)
+	return fmt.Sprintf("oauth2: cannot perform flow: %v\nResponse: %s", r.Response.Status, r.Body)
 }
