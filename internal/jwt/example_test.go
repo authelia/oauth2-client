@@ -10,7 +10,7 @@ import (
 	"authelia.com/client/oauth2/internal/jwt"
 )
 
-func ExampleJWTConfig() {
+func ExampleConfig() {
 	ctx := context.Background()
 	conf := &jwt.Config{
 		Email: "xxx@developer.com",

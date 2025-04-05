@@ -12,14 +12,18 @@ import (
 	"authelia.com/client/oauth2"
 )
 
+var logOnce sync.Once // only spam about deprecation once
+
 // AppEngineTokenSource returns a token source that fetches tokens from either
 // the current application's service account or from the metadata server,
 // depending on the App Engine environment. See below for environment-specific
 // details. If you are implementing a 3-legged OAuth 2.0 flow on App Engine that
 // involves user accounts, see oauth2.Config instead.
 //
-// First generation App Engine runtimes (<= Go 1.9):
-// AppEngineTokenSource returns a token source that fetches tokens issued to the
+// The current version of this library requires at least Go 1.17 to build,
+// so first generation App Engine runtimes (<= Go 1.9) are unsupported.
+// Previously, on first generation App Engine runtimes, AppEngineTokenSource
+// returned a token source that fetches tokens issued to the
 // current App Engine application's service account. The provided context must have
 // come from appengine.NewContext.
 //
@@ -29,15 +33,9 @@ import (
 // context and scopes are not used. Please use DefaultTokenSource (or ComputeTokenSource,
 // which DefaultTokenSource will use in this case) instead.
 func AppEngineTokenSource(ctx context.Context, scope ...string) oauth2.TokenSource {
-	return appEngineTokenSource(ctx, scope...)
-}
-
-var logOnce sync.Once // only spam about deprecation once
-
-// See comment on AppEngineTokenSource in appengine.go.
-func appEngineTokenSource(ctx context.Context, scope ...string) oauth2.TokenSource {
 	logOnce.Do(func() {
 		log.Print("google: AppEngineTokenSource is deprecated on App Engine standard second generation runtimes (>= Go 1.11) and App Engine flexible. Please use DefaultTokenSource or ComputeTokenSource.")
 	})
+
 	return ComputeTokenSource("")
 }

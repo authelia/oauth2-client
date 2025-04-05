@@ -6,6 +6,7 @@
 package endpoints
 
 import (
+	"net/url"
 	"strings"
 
 	"authelia.com/client/oauth2"
@@ -35,6 +36,12 @@ var Cern = oauth2.Endpoint{
 	TokenURL: "https://oauth.web.cern.ch/OAuth/Token",
 }
 
+// Discord is the endpoint for Discord.
+var Discord = oauth2.Endpoint{
+	AuthURL:  "https://discord.com/oauth2/authorize",
+	TokenURL: "https://discord.com/api/oauth2/token",
+}
+
 // Facebook is the endpoint for Facebook.
 var Facebook = oauth2.Endpoint{
 	AuthURL:  "https://www.facebook.com/v3.2/dialog/oauth",
@@ -62,8 +69,9 @@ var GitHub = oauth2.Endpoint{
 
 // GitLab is the endpoint for GitLab.
 var GitLab = oauth2.Endpoint{
-	AuthURL:  "https://gitlab.com/oauth/authorize",
-	TokenURL: "https://gitlab.com/oauth/token",
+	AuthURL:       "https://gitlab.com/oauth/authorize",
+	TokenURL:      "https://gitlab.com/oauth/token",
+	DeviceAuthURL: "https://gitlab.com/oauth/authorize_device",
 }
 
 // Google is the endpoint for Google.
@@ -143,6 +151,12 @@ var NokiaHealth = oauth2.Endpoint{
 var Odnoklassniki = oauth2.Endpoint{
 	AuthURL:  "https://www.odnoklassniki.ru/oauth/authorize",
 	TokenURL: "https://api.odnoklassniki.ru/oauth/token.do",
+}
+
+// Patreon is the endpoint for Patreon.
+var Patreon = oauth2.Endpoint{
+	AuthURL:  "https://www.patreon.com/oauth2/authorize",
+	TokenURL: "https://www.patreon.com/api/oauth2/token",
 }
 
 // PayPal is the endpoint for PayPal.
@@ -227,8 +241,9 @@ func AzureAD(tenant string) oauth2.Endpoint {
 		tenant = "common"
 	}
 	return oauth2.Endpoint{
-		AuthURL:  "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/authorize",
-		TokenURL: "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/token",
+		AuthURL:       "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/authorize",
+		TokenURL:      "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/token",
+		DeviceAuthURL: "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0/devicecode",
 	}
 }
 
@@ -257,22 +272,37 @@ func AWSCognito(domain string) oauth2.Endpoint {
 	}
 }
 
-// Authelia returns a new oauth2.Endpoint for the Authelia OpenID Connect 1.0 provider when supplied with the domain of
-// the specific Authelia instance.
+// Authelia returns a new oauth2.Endpoint for the Authelia OpenID Connect 1.0 provider when supplied
+// with the issuer *url.URL of the specific Authelia instance.
 //
-// For more information see:
-// https://www.authelia.com/integration/openid-connect/introduction/#discoverable-endpoints
-func Authelia(domain string) oauth2.Endpoint {
-	domain = strings.TrimRight(domain, "/")
+// See Also: https://www.authelia.com/integration/openid-connect/introduction/#discoverable-endpoints
+func Authelia(issuer *url.URL) oauth2.Endpoint {
+	if issuer == nil {
+		return oauth2.Endpoint{}
+	}
+
+	api := issuer.JoinPath("api", "oidc")
 
 	return oauth2.Endpoint{
-		AuthURL:          domain + "/api/oidc/authorization",
-		PushedAuthURL:    domain + "/api/oidc/pushed-authorization-request",
-		TokenURL:         domain + "/api/oidc/token",
-		IntrospectionURL: domain + "/api/oidc/introspection",
-		RevocationURL:    domain + "/api/oidc/revocation",
-		UserinfoURL:      domain + "/api/oidc/userinfo",
-		JWKSURL:          domain + "/jwks.json",
+		AuthURL:          api.JoinPath("authorization").String(),
+		DeviceAuthURL:    api.JoinPath("device-authorization").String(),
+		PushedAuthURL:    api.JoinPath("pushed-authorization-request").String(),
+		TokenURL:         api.JoinPath("token").String(),
+		IntrospectionURL: api.JoinPath("introspection").String(),
+		RevocationURL:    api.JoinPath("revocation").String(),
+		UserinfoURL:      api.JoinPath("userinfo").String(),
+		JWKSURL:          issuer.JoinPath("jwks.json").String(),
 		AuthStyle:        oauth2.AuthStyleInParams,
+	}
+}
+
+// AutheliaWithDomainString returns a new oauth2.Endpoint for the Authelia OpenID Connect 1.0 provider when supplied
+// with the domain of the specific Authelia instance. This function will panic if the domain is not a URL that can be
+// parsed with url.ParseRequestURI, it's recommended to use Authelia instead.
+func AutheliaWithDomainString(domain string) oauth2.Endpoint {
+	if issuer, err := url.ParseRequestURI(domain); err != nil {
+		panic(err)
+	} else {
+		return Authelia(issuer)
 	}
 }
