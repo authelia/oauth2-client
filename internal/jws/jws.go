@@ -42,7 +42,7 @@ type ClaimSet struct {
 
 	// See http://tools.ietf.org/html/draft-jones-json-web-token-10#section-4.3
 	// This array is marshalled using custom code (see (c *ClaimSet) encode()).
-	PrivateClaims map[string]interface{} `json:"-"`
+	PrivateClaims map[string]any `json:"-"`
 }
 
 func (c *ClaimSet) encode() (string, error) {

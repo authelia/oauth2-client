@@ -28,7 +28,7 @@ func (cs urlCredentialSource) credentialSourceType() string {
 
 func (cs urlCredentialSource) subjectToken() (string, error) {
 	client := oauth2.NewClient(cs.ctx, nil)
-	req, err := http.NewRequest("GET", cs.URL, nil)
+	req, err := http.NewRequest(http.MethodGet, cs.URL, nil)
 	if err != nil {
 		return "", fmt.Errorf("oauth2/google/externalaccount: HTTP request for URL-sourced credential failed: %v", err)
 	}
@@ -53,7 +53,7 @@ func (cs urlCredentialSource) subjectToken() (string, error) {
 
 	switch cs.Format.Type {
 	case "json":
-		jsonData := make(map[string]interface{})
+		jsonData := make(map[string]any)
 		err = json.Unmarshal(respBody, &jsonData)
 		if err != nil {
 			return "", fmt.Errorf("oauth2/google/externalaccount: failed to unmarshal subject token file: %v", err)

@@ -68,7 +68,7 @@ func (its ImpersonateTokenSource) Token() (*oauth2.Token, error) {
 		return nil, fmt.Errorf("oauth2/google: unable to marshal request: %v", err)
 	}
 	client := oauth2.NewClient(its.Ctx, its.Ts)
-	req, err := http.NewRequest("POST", its.URL, bytes.NewReader(b))
+	req, err := http.NewRequest(http.MethodPost, its.URL, bytes.NewReader(b))
 	if err != nil {
 		return nil, fmt.Errorf("oauth2/google: unable to create impersonation request: %v", err)
 	}

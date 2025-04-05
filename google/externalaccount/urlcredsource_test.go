@@ -16,7 +16,7 @@ var myURLToken = "testTokenValue"
 
 func TestRetrieveURLSubjectToken_Text(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
+		if r.Method != http.MethodGet {
 			t.Errorf("Unexpected request method, %v is found", r.Method)
 		}
 		if r.Header.Get("Metadata") != "True" {
@@ -51,7 +51,7 @@ func TestRetrieveURLSubjectToken_Text(t *testing.T) {
 // Checking that retrieveSubjectToken properly defaults to type text
 func TestRetrieveURLSubjectToken_Untyped(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
+		if r.Method != http.MethodGet {
 			t.Errorf("Unexpected request method, %v is found", r.Method)
 		}
 		w.Write([]byte("testTokenValue"))
@@ -81,7 +81,7 @@ func TestRetrieveURLSubjectToken_JSON(t *testing.T) {
 		TestToken string `json:"SubjToken"`
 	}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got, want := r.Method, "GET"; got != want {
+		if got, want := r.Method, http.MethodGet; got != want {
 			t.Errorf("got %v, but want %v", r.Method, want)
 		}
 		resp := tokenResponse{TestToken: "testTokenValue"}

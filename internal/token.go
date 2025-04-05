@@ -42,6 +42,9 @@ type Token struct {
 	// if it expires.
 	RefreshToken string
 
+	// IDToken is the OpenID Connect 1.0 ID Token.
+	IDToken string
+
 	// Expiry is the optional expiration time of the access token.
 	//
 	// If zero, TokenSource implementations will reuse the same
@@ -51,7 +54,7 @@ type Token struct {
 
 	// Raw optionally contains extra metadata from the server
 	// when updating a token.
-	Raw interface{}
+	Raw any
 }
 
 // tokenJSON is the struct representing the HTTP response from OAuth2
@@ -61,6 +64,7 @@ type tokenJSON struct {
 	AccessToken  string         `json:"access_token"`
 	TokenType    string         `json:"token_type"`
 	RefreshToken string         `json:"refresh_token"`
+	IDToken      string         `json:"id_token"`
 	ExpiresIn    expirationTime `json:"expires_in"` // at least PayPal returns string, while most return number
 	// error fields
 	// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
@@ -195,7 +199,7 @@ func newPOSTRequest(uri, clientID, clientSecret string, v url.Values, authStyle 
 			v.Set("client_secret", clientSecret)
 		}
 	}
-	req, err := http.NewRequest("POST", uri, strings.NewReader(v.Encode()))
+	req, err := http.NewRequest(http.MethodPost, uri, strings.NewReader(v.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -214,33 +218,6 @@ func cloneURLValues(v url.Values) url.Values {
 	return v2
 }
 
-func RevokeToken(ctx context.Context, clientID, clientSecret, revocationURL string, v url.Values, authStyle AuthStyle, styleCache *AuthStyleCache) error {
-	needsAuthStyleProbe := authStyle == 0
-	if needsAuthStyleProbe {
-		if style, ok := styleCache.lookupAuthStyle(revocationURL); ok {
-			authStyle = style
-			needsAuthStyleProbe = false
-		} else {
-			authStyle = AuthStyleInHeader // the first way we'll try
-		}
-	}
-	req, err := newPOSTRequest(revocationURL, clientID, clientSecret, v, authStyle)
-	if err != nil {
-		return err
-	}
-
-	if err = doRevokeRoundTrip(ctx, req); err != nil && needsAuthStyleProbe {
-		authStyle = AuthStyleInParams // the second way we'll try
-		req, _ = newPOSTRequest(revocationURL, clientID, clientSecret, v, authStyle)
-		err = doRevokeRoundTrip(ctx, req)
-	}
-	if needsAuthStyleProbe && err == nil {
-		styleCache.setAuthStyle(revocationURL, authStyle)
-	}
-
-	return err
-}
-
 func RetrieveToken(ctx context.Context, clientID, clientSecret, tokenURL string, v url.Values, authStyle AuthStyle, styleCache *AuthStyleCache) (*Token, error) {
 	needsAuthStyleProbe := authStyle == 0
 	if needsAuthStyleProbe {
@@ -251,10 +228,12 @@ func RetrieveToken(ctx context.Context, clientID, clientSecret, tokenURL string,
 			authStyle = AuthStyleInHeader // the first way we'll try
 		}
 	}
+
 	req, err := newPOSTRequest(tokenURL, clientID, clientSecret, v, authStyle)
 	if err != nil {
 		return nil, err
 	}
+
 	token, err := doTokenRoundTrip(ctx, req)
 	if err != nil && needsAuthStyleProbe {
 		// If we get an error, assume the server wants the
@@ -273,64 +252,18 @@ func RetrieveToken(ctx context.Context, clientID, clientSecret, tokenURL string,
 		req, _ = newPOSTRequest(tokenURL, clientID, clientSecret, v, authStyle)
 		token, err = doTokenRoundTrip(ctx, req)
 	}
+
 	if needsAuthStyleProbe && err == nil {
 		styleCache.setAuthStyle(tokenURL, authStyle)
 	}
+
 	// Don't overwrite `RefreshToken` with an empty value
 	// if this was a token refreshing request.
 	if token != nil && token.RefreshToken == "" {
 		token.RefreshToken = v.Get("refresh_token")
 	}
+
 	return token, err
-}
-
-func doRevokeRoundTrip(ctx context.Context, req *http.Request) error {
-	r, err := ContextClient(ctx).Do(req.WithContext(ctx))
-	if err != nil {
-		return err
-	}
-	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
-	r.Body.Close()
-	if err != nil {
-		return fmt.Errorf("oauth2: cannot revoke token: %v", err)
-	}
-
-	failureStatus := r.StatusCode < 200 || r.StatusCode > 299
-
-	if !failureStatus {
-		return nil
-	}
-
-	revokeError := &RevokeError{
-		Response: r,
-		Body:     body,
-		// attempt to populate error detail below
-	}
-
-	content, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-
-	switch content {
-	case "application/x-www-form-urlencoded", "text/plain":
-		vals, err := url.ParseQuery(string(body))
-		if err != nil {
-			return revokeError
-		}
-
-		revokeError.ErrorCode = vals.Get("error")
-		revokeError.ErrorDescription = vals.Get("error_description")
-		revokeError.ErrorURI = vals.Get("error_uri")
-	default:
-		var rj errorJSON
-		if err = json.Unmarshal(body, &rj); err != nil {
-			return revokeError
-		}
-
-		revokeError.ErrorCode = rj.ErrorCode
-		revokeError.ErrorDescription = rj.ErrorDescription
-		revokeError.ErrorURI = rj.ErrorURI
-	}
-
-	return revokeError
 }
 
 func doTokenRoundTrip(ctx context.Context, req *http.Request) (*Token, error) {
@@ -370,6 +303,7 @@ func doTokenRoundTrip(ctx context.Context, req *http.Request) (*Token, error) {
 			AccessToken:  vals.Get("access_token"),
 			TokenType:    vals.Get("token_type"),
 			RefreshToken: vals.Get("refresh_token"),
+			IDToken:      vals.Get("id_token"),
 			Raw:          vals,
 		}
 		e := vals.Get("expires_in")
@@ -392,8 +326,9 @@ func doTokenRoundTrip(ctx context.Context, req *http.Request) (*Token, error) {
 			AccessToken:  tj.AccessToken,
 			TokenType:    tj.TokenType,
 			RefreshToken: tj.RefreshToken,
+			IDToken:      tj.IDToken,
 			Expiry:       tj.expiry(),
-			Raw:          make(map[string]interface{}),
+			Raw:          make(map[string]any),
 		}
 		_ = json.Unmarshal(body, &token.Raw) // no error checks for optional fields
 	}
@@ -403,13 +338,15 @@ func doTokenRoundTrip(ctx context.Context, req *http.Request) (*Token, error) {
 	if failureStatus || retrieveError.ErrorCode != "" {
 		return nil, retrieveError
 	}
+
 	if token.AccessToken == "" {
 		return nil, errors.New("oauth2: server response missing access_token")
 	}
+
 	return token, nil
 }
 
-// mirrors oauth2.RetrieveError
+// RetrieveError mirrors oauth2.BaseError.
 type RetrieveError struct {
 	Response         *http.Response
 	Body             []byte

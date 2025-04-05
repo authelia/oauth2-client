@@ -21,7 +21,7 @@ var (
 
 func Test_DownscopedTokenSource(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
+		if r.Method != http.MethodPost {
 			t.Errorf("Unexpected request method, %v is found", r.Method)
 		}
 		if r.URL.String() != "/" {

@@ -106,7 +106,7 @@ func retrieveDeviceAuth(ctx context.Context, c *Config, v url.Values) (*DeviceAu
 		return nil, errors.New("endpoint missing DeviceAuthURL")
 	}
 
-	req, err := http.NewRequest("POST", c.Endpoint.DeviceAuthURL, strings.NewReader(v.Encode()))
+	req, err := http.NewRequest(http.MethodPost, c.Endpoint.DeviceAuthURL, strings.NewReader(v.Encode()))
 	if err != nil {
 		return nil, err
 	}

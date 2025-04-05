@@ -31,8 +31,9 @@ func newConf(url string) *Config {
 		RedirectURL:  "REDIRECT_URL",
 		Scopes:       []string{"scope1", "scope2"},
 		Endpoint: Endpoint{
-			AuthURL:  url + "/auth",
-			TokenURL: url + "/token",
+			AuthURL:       url + "/auth",
+			TokenURL:      url + "/token",
+			PushedAuthURL: url + "/par",
 		},
 	}
 }
@@ -584,7 +585,7 @@ func TestConfigClientWithToken(t *testing.T) {
 	conf := newConf(ts.URL)
 
 	c := conf.Client(context.Background(), tok)
-	req, err := http.NewRequest("GET", ts.URL, nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
 		t.Error(err)
 	}
