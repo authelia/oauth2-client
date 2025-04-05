@@ -6,6 +6,7 @@ package oauth2
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -41,6 +42,9 @@ type Token struct {
 	// if it expires.
 	RefreshToken string `json:"refresh_token,omitempty"`
 
+	// IDToken is the OpenID Connect 1.0 ID Token.
+	IDToken string `json:"id_token,omitempty"`
+
 	// Expiry is the optional expiration time of the access token.
 	//
 	// If zero, TokenSource implementations will reuse the same
@@ -57,7 +61,7 @@ type Token struct {
 
 	// raw optionally contains extra metadata from the server
 	// when updating a token.
-	raw interface{}
+	raw any
 
 	// expiryDelta is used to calculate when a token is considered
 	// expired, by subtracting from Expiry. If zero, defaultExpiryDelta
@@ -70,15 +74,19 @@ func (t *Token) Type() string {
 	if strings.EqualFold(t.TokenType, "bearer") {
 		return "Bearer"
 	}
+
 	if strings.EqualFold(t.TokenType, "mac") {
 		return "MAC"
 	}
+
 	if strings.EqualFold(t.TokenType, "basic") {
 		return "Basic"
 	}
+
 	if t.TokenType != "" {
 		return t.TokenType
 	}
+
 	return "Bearer"
 }
 
@@ -94,7 +102,7 @@ func (t *Token) SetAuthHeader(r *http.Request) {
 // WithExtra returns a new Token that's a clone of t, but using the
 // provided raw extra map. This is only intended for use by packages
 // implementing derivative OAuth2 flows.
-func (t *Token) WithExtra(extra interface{}) *Token {
+func (t *Token) WithExtra(extra any) *Token {
 	t2 := new(Token)
 	*t2 = *t
 	t2.raw = extra
@@ -104,8 +112,8 @@ func (t *Token) WithExtra(extra interface{}) *Token {
 // Extra returns an extra field.
 // Extra fields are key-value pairs returned by the server as a
 // part of the token retrieval response.
-func (t *Token) Extra(key string) interface{} {
-	if raw, ok := t.raw.(map[string]interface{}); ok {
+func (t *Token) Extra(key string) any {
+	if raw, ok := t.raw.(map[string]any); ok {
 		return raw[key]
 	}
 
@@ -161,6 +169,7 @@ func tokenFromInternal(t *internal.Token) *Token {
 		AccessToken:  t.AccessToken,
 		TokenType:    t.TokenType,
 		RefreshToken: t.RefreshToken,
+		IDToken:      t.IDToken,
 		Expiry:       t.Expiry,
 		raw:          t.Raw,
 	}
@@ -172,9 +181,12 @@ func tokenFromInternal(t *internal.Token) *Token {
 func retrieveToken(ctx context.Context, c *Config, v url.Values) (*Token, error) {
 	tk, err := internal.RetrieveToken(ctx, c.ClientID, c.ClientSecret, c.Endpoint.TokenURL, v, internal.AuthStyle(c.Endpoint.AuthStyle), c.authStyleCache.Get())
 	if err != nil {
-		if rErr, ok := err.(*internal.RetrieveError); ok {
+		var rErr *internal.RetrieveError
+
+		if errors.As(err, &rErr) {
 			return nil, &RetrieveError{BaseError: (*BaseError)(rErr)}
 		}
+
 		return nil, err
 	}
 	return tokenFromInternal(tk), nil

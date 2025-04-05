@@ -12,18 +12,21 @@ import (
 func TestTokenExtra(t *testing.T) {
 	type testCase struct {
 		key  string
-		val  interface{}
-		want interface{}
+		val  any
+		want any
 	}
+
 	const key = "extra-key"
+
 	cases := []testCase{
 		{key: key, val: "abc", want: "abc"},
 		{key: key, val: 123, want: 123},
 		{key: key, val: "", want: ""},
 		{key: "other-key", val: "def", want: nil},
 	}
+
 	for _, tc := range cases {
-		extra := make(map[string]interface{})
+		extra := make(map[string]any)
 		extra[tc.key] = tc.val
 		tok := &Token{raw: extra}
 		if got, want := tok.Extra(key), tc.want; got != want {

@@ -27,7 +27,7 @@ func defaultHeader() http.Header {
 // The first 4 fields are all mandatory.  headers can be used to pass additional
 // headers beyond the bare minimum required by the token exchange.  options can
 // be used to pass additional JSON-structured options to the remote server.
-func ExchangeToken(ctx context.Context, endpoint string, request *TokenExchangeRequest, authentication ClientAuthentication, headers http.Header, options map[string]interface{}) (*Response, error) {
+func ExchangeToken(ctx context.Context, endpoint string, request *TokenExchangeRequest, authentication ClientAuthentication, headers http.Header, options map[string]any) (*Response, error) {
 	data := url.Values{}
 	data.Set("audience", request.Audience)
 	data.Set("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange")
@@ -62,7 +62,7 @@ func makeRequest(ctx context.Context, endpoint string, data url.Values, authenti
 	authentication.InjectAuthentication(data, headers)
 	encodedData := data.Encode()
 
-	req, err := http.NewRequest("POST", endpoint, strings.NewReader(encodedData))
+	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(encodedData))
 	if err != nil {
 		return nil, fmt.Errorf("oauth2/google: failed to properly build http request: %v", err)
 	}

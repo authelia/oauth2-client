@@ -68,7 +68,7 @@ type Config struct {
 
 	// PrivateClaims optionally specifies custom private claims in the JWT.
 	// See http://tools.ietf.org/html/draft-jones-json-web-token-10#section-4.3
-	PrivateClaims map[string]interface{}
+	PrivateClaims map[string]any
 
 	// UseIDToken optionally specifies whether ID token should be used instead
 	// of access token when the server returns both.
@@ -160,8 +160,9 @@ func (js jwtSource) Token() (token *oauth2.Token, err error) {
 	token = &oauth2.Token{
 		AccessToken: tokenRes.AccessToken,
 		TokenType:   tokenRes.TokenType,
+		IDToken:     tokenRes.IDToken,
 	}
-	raw := make(map[string]interface{})
+	raw := make(map[string]any)
 	_ = json.Unmarshal(body, &raw) // no error checks for optional fields
 	token = token.WithExtra(raw)
 

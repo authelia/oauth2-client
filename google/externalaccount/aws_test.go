@@ -86,10 +86,10 @@ func testRequestSigner(t *testing.T, rs *awsRequestSigner, input, expectedOutput
 }
 
 func TestAWSv4Signature_GetRequest(t *testing.T) {
-	input, _ := http.NewRequest("GET", "https://host.foo.com", nil)
+	input, _ := http.NewRequest(http.MethodGet, "https://host.foo.com", nil)
 	setDefaultTime(input)
 
-	output, _ := http.NewRequest("GET", "https://host.foo.com", nil)
+	output, _ := http.NewRequest(http.MethodGet, "https://host.foo.com", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -104,10 +104,10 @@ func TestAWSv4Signature_GetRequest(t *testing.T) {
 }
 
 func TestAWSv4Signature_GetRequestWithRelativePath(t *testing.T) {
-	input, _ := http.NewRequest("GET", "https://host.foo.com/foo/bar/../..", nil)
+	input, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/foo/bar/../..", nil)
 	setDefaultTime(input)
 
-	output, _ := http.NewRequest("GET", "https://host.foo.com/foo/bar/../..", nil)
+	output, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/foo/bar/../..", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -122,10 +122,10 @@ func TestAWSv4Signature_GetRequestWithRelativePath(t *testing.T) {
 }
 
 func TestAWSv4Signature_GetRequestWithDotPath(t *testing.T) {
-	input, _ := http.NewRequest("GET", "https://host.foo.com/./", nil)
+	input, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/./", nil)
 	setDefaultTime(input)
 
-	output, _ := http.NewRequest("GET", "https://host.foo.com/./", nil)
+	output, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/./", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -140,10 +140,10 @@ func TestAWSv4Signature_GetRequestWithDotPath(t *testing.T) {
 }
 
 func TestAWSv4Signature_GetRequestWithPointlessDotPath(t *testing.T) {
-	input, _ := http.NewRequest("GET", "https://host.foo.com/./foo", nil)
+	input, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/./foo", nil)
 	setDefaultTime(input)
 
-	output, _ := http.NewRequest("GET", "https://host.foo.com/./foo", nil)
+	output, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/./foo", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -158,10 +158,10 @@ func TestAWSv4Signature_GetRequestWithPointlessDotPath(t *testing.T) {
 }
 
 func TestAWSv4Signature_GetRequestWithUtf8Path(t *testing.T) {
-	input, _ := http.NewRequest("GET", "https://host.foo.com/%E1%88%B4", nil)
+	input, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/%E1%88%B4", nil)
 	setDefaultTime(input)
 
-	output, _ := http.NewRequest("GET", "https://host.foo.com/%E1%88%B4", nil)
+	output, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/%E1%88%B4", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -176,10 +176,10 @@ func TestAWSv4Signature_GetRequestWithUtf8Path(t *testing.T) {
 }
 
 func TestAWSv4Signature_GetRequestWithDuplicateQuery(t *testing.T) {
-	input, _ := http.NewRequest("GET", "https://host.foo.com/?foo=Zoo&foo=aha", nil)
+	input, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/?foo=Zoo&foo=aha", nil)
 	setDefaultTime(input)
 
-	output, _ := http.NewRequest("GET", "https://host.foo.com/?foo=Zoo&foo=aha", nil)
+	output, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/?foo=Zoo&foo=aha", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -194,10 +194,10 @@ func TestAWSv4Signature_GetRequestWithDuplicateQuery(t *testing.T) {
 }
 
 func TestAWSv4Signature_GetRequestWithMisorderedQuery(t *testing.T) {
-	input, _ := http.NewRequest("GET", "https://host.foo.com/?foo=b&foo=a", nil)
+	input, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/?foo=b&foo=a", nil)
 	setDefaultTime(input)
 
-	output, _ := http.NewRequest("GET", "https://host.foo.com/?foo=b&foo=a", nil)
+	output, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/?foo=b&foo=a", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -212,10 +212,10 @@ func TestAWSv4Signature_GetRequestWithMisorderedQuery(t *testing.T) {
 }
 
 func TestAWSv4Signature_GetRequestWithUtf8Query(t *testing.T) {
-	input, _ := http.NewRequest("GET", "https://host.foo.com/?ሴ=bar", nil)
+	input, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/?ሴ=bar", nil)
 	setDefaultTime(input)
 
-	output, _ := http.NewRequest("GET", "https://host.foo.com/?ሴ=bar", nil)
+	output, _ := http.NewRequest(http.MethodGet, "https://host.foo.com/?ሴ=bar", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -230,11 +230,11 @@ func TestAWSv4Signature_GetRequestWithUtf8Query(t *testing.T) {
 }
 
 func TestAWSv4Signature_PostRequest(t *testing.T) {
-	input, _ := http.NewRequest("POST", "https://host.foo.com/", nil)
+	input, _ := http.NewRequest(http.MethodPost, "https://host.foo.com/", nil)
 	setDefaultTime(input)
 	input.Header.Add("ZOO", "zoobar")
 
-	output, _ := http.NewRequest("POST", "https://host.foo.com/", nil)
+	output, _ := http.NewRequest(http.MethodPost, "https://host.foo.com/", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -250,11 +250,11 @@ func TestAWSv4Signature_PostRequest(t *testing.T) {
 }
 
 func TestAWSv4Signature_PostRequestWithCapitalizedHeaderValue(t *testing.T) {
-	input, _ := http.NewRequest("POST", "https://host.foo.com/", nil)
+	input, _ := http.NewRequest(http.MethodPost, "https://host.foo.com/", nil)
 	setDefaultTime(input)
 	input.Header.Add("zoo", "ZOOBAR")
 
-	output, _ := http.NewRequest("POST", "https://host.foo.com/", nil)
+	output, _ := http.NewRequest(http.MethodPost, "https://host.foo.com/", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -270,11 +270,11 @@ func TestAWSv4Signature_PostRequestWithCapitalizedHeaderValue(t *testing.T) {
 }
 
 func TestAWSv4Signature_PostRequestPhfft(t *testing.T) {
-	input, _ := http.NewRequest("POST", "https://host.foo.com/", nil)
+	input, _ := http.NewRequest(http.MethodPost, "https://host.foo.com/", nil)
 	setDefaultTime(input)
 	input.Header.Add("p", "phfft")
 
-	output, _ := http.NewRequest("POST", "https://host.foo.com/", nil)
+	output, _ := http.NewRequest(http.MethodPost, "https://host.foo.com/", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -290,11 +290,11 @@ func TestAWSv4Signature_PostRequestPhfft(t *testing.T) {
 }
 
 func TestAWSv4Signature_PostRequestWithBody(t *testing.T) {
-	input, _ := http.NewRequest("POST", "https://host.foo.com/", strings.NewReader("foo=bar"))
+	input, _ := http.NewRequest(http.MethodPost, "https://host.foo.com/", strings.NewReader("foo=bar"))
 	setDefaultTime(input)
 	input.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	output, _ := http.NewRequest("POST", "https://host.foo.com/", nil)
+	output, _ := http.NewRequest(http.MethodPost, "https://host.foo.com/", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -310,10 +310,10 @@ func TestAWSv4Signature_PostRequestWithBody(t *testing.T) {
 }
 
 func TestAWSv4Signature_PostRequestWithQueryString(t *testing.T) {
-	input, _ := http.NewRequest("POST", "https://host.foo.com/?foo=bar", nil)
+	input, _ := http.NewRequest(http.MethodPost, "https://host.foo.com/?foo=bar", nil)
 	setDefaultTime(input)
 
-	output, _ := http.NewRequest("POST", "https://host.foo.com/?foo=bar", nil)
+	output, _ := http.NewRequest(http.MethodPost, "https://host.foo.com/?foo=bar", nil)
 	output.Header = http.Header{
 		"Host":          []string{"host.foo.com"},
 		"Date":          []string{"Mon, 09 Sep 2011 23:36:00 GMT"},
@@ -328,9 +328,9 @@ func TestAWSv4Signature_PostRequestWithQueryString(t *testing.T) {
 }
 
 func TestAWSv4Signature_GetRequestWithSecurityToken(t *testing.T) {
-	input, _ := http.NewRequest("GET", "https://ec2.us-east-2.amazonaws.com?Action=DescribeRegions&Version=2013-10-15", nil)
+	input, _ := http.NewRequest(http.MethodGet, "https://ec2.us-east-2.amazonaws.com?Action=DescribeRegions&Version=2013-10-15", nil)
 
-	output, _ := http.NewRequest("GET", "https://ec2.us-east-2.amazonaws.com?Action=DescribeRegions&Version=2013-10-15", nil)
+	output, _ := http.NewRequest(http.MethodGet, "https://ec2.us-east-2.amazonaws.com?Action=DescribeRegions&Version=2013-10-15", nil)
 	output.Header = http.Header{
 		"Host":                 []string{"ec2.us-east-2.amazonaws.com"},
 		"Authorization":        []string{"AWS4-HMAC-SHA256 Credential=" + accessKeyID + "/20200811/us-east-2/ec2/aws4_request, SignedHeaders=host;x-amz-date;x-amz-security-token, Signature=631ea80cddfaa545fdadb120dc92c9f18166e38a5c47b50fab9fce476e022855"},
@@ -346,9 +346,9 @@ func TestAWSv4Signature_GetRequestWithSecurityToken(t *testing.T) {
 }
 
 func TestAWSv4Signature_PostRequestWithSecurityToken(t *testing.T) {
-	input, _ := http.NewRequest("POST", "https://sts.us-east-2.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15", nil)
+	input, _ := http.NewRequest(http.MethodPost, "https://sts.us-east-2.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15", nil)
 
-	output, _ := http.NewRequest("POST", "https://sts.us-east-2.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15", nil)
+	output, _ := http.NewRequest(http.MethodPost, "https://sts.us-east-2.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15", nil)
 	output.Header = http.Header{
 		"Authorization":        []string{"AWS4-HMAC-SHA256 Credential=" + accessKeyID + "/20200811/us-east-2/sts/aws4_request, SignedHeaders=host;x-amz-date;x-amz-security-token, Signature=73452984e4a880ffdc5c392355733ec3f5ba310d5e0609a89244440cadfe7a7a"},
 		"Host":                 []string{"sts.us-east-2.amazonaws.com"},
@@ -365,11 +365,11 @@ func TestAWSv4Signature_PostRequestWithSecurityToken(t *testing.T) {
 
 func TestAWSv4Signature_PostRequestWithSecurityTokenAndAdditionalHeaders(t *testing.T) {
 	requestParams := "{\"KeySchema\":[{\"KeyType\":\"HASH\",\"AttributeName\":\"Id\"}],\"TableName\":\"TestTable\",\"AttributeDefinitions\":[{\"AttributeName\":\"Id\",\"AttributeType\":\"S\"}],\"ProvisionedThroughput\":{\"WriteCapacityUnits\":5,\"ReadCapacityUnits\":5}}"
-	input, _ := http.NewRequest("POST", "https://dynamodb.us-east-2.amazonaws.com/", strings.NewReader(requestParams))
+	input, _ := http.NewRequest(http.MethodPost, "https://dynamodb.us-east-2.amazonaws.com/", strings.NewReader(requestParams))
 	input.Header.Add("Content-Type", "application/x-amz-json-1.0")
 	input.Header.Add("x-amz-target", "DynamoDB_20120810.CreateTable")
 
-	output, _ := http.NewRequest("POST", "https://dynamodb.us-east-2.amazonaws.com/", strings.NewReader(requestParams))
+	output, _ := http.NewRequest(http.MethodPost, "https://dynamodb.us-east-2.amazonaws.com/", strings.NewReader(requestParams))
 	output.Header = http.Header{
 		"Authorization":        []string{"AWS4-HMAC-SHA256 Credential=" + accessKeyID + "/20200811/us-east-2/dynamodb/aws4_request, SignedHeaders=content-type;host;x-amz-date;x-amz-security-token;x-amz-target, Signature=fdaa5b9cc9c86b80fe61eaf504141c0b3523780349120f2bd8145448456e0385"},
 		"Host":                 []string{"dynamodb.us-east-2.amazonaws.com"},
@@ -395,9 +395,9 @@ func TestAWSv4Signature_PostRequestWithAmzDateButNoSecurityToken(t *testing.T) {
 		},
 	}
 
-	input, _ := http.NewRequest("POST", "https://sts.us-east-2.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15", nil)
+	input, _ := http.NewRequest(http.MethodPost, "https://sts.us-east-2.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15", nil)
 
-	output, _ := http.NewRequest("POST", "https://sts.us-east-2.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15", nil)
+	output, _ := http.NewRequest(http.MethodPost, "https://sts.us-east-2.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15", nil)
 	output.Header = http.Header{
 		"Authorization": []string{"AWS4-HMAC-SHA256 Credential=" + accessKeyID + "/20200811/us-east-2/sts/aws4_request, SignedHeaders=host;x-amz-date, Signature=d095ba304919cd0d5570ba8a3787884ee78b860f268ed040ba23831d55536d56"},
 		"Host":          []string{"sts.us-east-2.amazonaws.com"},
@@ -538,7 +538,7 @@ func (server *testAwsServer) getCredentialSource(url string) *CredentialSource {
 }
 
 func getExpectedSubjectToken(url, region, accessKeyID, secretAccessKey, securityToken string) string {
-	req, _ := http.NewRequest("POST", url, nil)
+	req, _ := http.NewRequest(http.MethodPost, url, nil)
 	req.Header.Add("x-goog-cloud-target-resource", testFileConfig.Audience)
 	signer := &awsRequestSigner{
 		RegionName: region,
@@ -552,7 +552,7 @@ func getExpectedSubjectToken(url, region, accessKeyID, secretAccessKey, security
 
 	result := awsRequest{
 		URL:    url,
-		Method: "POST",
+		Method: http.MethodPost,
 		Headers: []awsRequestHeader{
 			{
 				Key:   "Authorization",
