@@ -5,6 +5,7 @@
 package google
 
 import (
+	"authelia.com/client/oauth2/google/internal/impersonate"
 	"context"
 	"encoding/json"
 	"errors"
@@ -16,7 +17,7 @@ import (
 	"cloud.google.com/go/compute/metadata"
 
 	"authelia.com/client/oauth2"
-	"authelia.com/client/oauth2/google/internal/externalaccount"
+	"authelia.com/client/oauth2/google/externalaccount"
 	"authelia.com/client/oauth2/google/internal/externalaccountauthorizeduser"
 	"authelia.com/client/oauth2/internal/jwt"
 )
@@ -201,12 +202,12 @@ func (f *credentialsFile) tokenSource(ctx context.Context, params CredentialsPar
 			ServiceAccountImpersonationLifetimeSeconds: f.ServiceAccountImpersonation.TokenLifetimeSeconds,
 			ClientSecret:             f.ClientSecret,
 			ClientID:                 f.ClientID,
-			CredentialSource:         f.CredentialSource,
+			CredentialSource:         &f.CredentialSource,
 			QuotaProjectID:           f.QuotaProjectID,
 			Scopes:                   params.Scopes,
 			WorkforcePoolUserProject: f.WorkforcePoolUserProject,
 		}
-		return cfg.TokenSource(ctx)
+		return externalaccount.NewTokenSource(ctx, *cfg)
 	case externalAccountAuthorizedUserKey:
 		cfg := &externalaccountauthorizeduser.Config{
 			Audience:       f.Audience,
@@ -229,7 +230,7 @@ func (f *credentialsFile) tokenSource(ctx context.Context, params CredentialsPar
 		if err != nil {
 			return nil, err
 		}
-		imp := externalaccount.ImpersonateTokenSource{
+		imp := impersonate.ImpersonateTokenSource{
 			Ctx:       ctx,
 			URL:       f.ServiceAccountImpersonationURL,
 			Scopes:    params.Scopes,
@@ -252,7 +253,10 @@ func (f *credentialsFile) tokenSource(ctx context.Context, params CredentialsPar
 // Further information about retrieving access tokens from the GCE metadata
 // server can be found at https://cloud.google.com/compute/docs/authentication.
 func ComputeTokenSource(account string, scope ...string) oauth2.TokenSource {
-	return computeTokenSource(account, 0, scope...)
+	// refresh 3 minutes and 45 seconds early. The shortest MDS cache is currently 4 minutes, so any
+	// refreshes earlier are a waste of compute.
+	earlyExpirySecs := 225 * time.Second
+	return computeTokenSource(account, earlyExpirySecs, scope...)
 }
 
 func computeTokenSource(account string, earlyExpiry time.Duration, scope ...string) oauth2.TokenSource {
